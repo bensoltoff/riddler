@@ -5,16 +5,20 @@ rm(list = ls())
 set.seed(11091987)
 
 # set constants
-n <- 100
+n_car <- 1000
+n_trial <- 1000
 
 # simulate speeds
-cars <- sample(1:100, n, replace = TRUE)
+cars <- replicate(n_trial, sample(1:100, n_car, replace = TRUE))
 
 # get cumulative minimum speeds
-cars_min <- cummin(cars)
+cars_min <- apply(cars, 2, cummin)
 
 # unique groups
-groups <- unique(cars_min)
+groups <- apply(cars_min, 2, FUN = function(x) length(unique(x)))
 
 # number of groups
-length(groups)
+mean(groups)
+
+
+
