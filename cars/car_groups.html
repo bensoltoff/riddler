@@ -69,24 +69,14 @@ img {
 
 <pre class="r"><code>require(dplyr)
 library(foreach)
-library(doParallel)</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
-<pre><code>## Loading required package: parallel</code></pre>
-<pre><code>## 
-## Attaching package: 'parallel'</code></pre>
-<pre><code>## The following objects are masked from 'package:snow':
-## 
-##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
-##     clusterExport, clusterMap, clusterSplit, makeCluster,
-##     parApply, parCapply, parLapply, parRapply, parSapply,
-##     splitIndices, stopCluster</code></pre>
-<pre class="r"><code>require(ggplot2)
+library(doParallel)
+require(ggplot2)
 
 set.seed(11091987)
 
 car_groups &lt;- function(n_car = 100, n_trial = 100){
   # simulate speeds
-  cars &lt;- replicate(n_trial, sample(1:100, n_car, replace = TRUE))
+  cars &lt;- replicate(n_trial, runif(n_car, 0, 5e5))
 
   # get cumulative minimum speeds
   cars_min &lt;- apply(cars, 2, cummin)
@@ -99,8 +89,10 @@ car_groups &lt;- function(n_car = 100, n_trial = 100){
 }</code></pre>
 <pre class="r"><code># set constants
 n_cars &lt;- 2^(1:16)
-
-# register cluster
+n_cars</code></pre>
+<pre><code>##  [1]     2     4     8    16    32    64   128   256   512  1024  2048
+## [12]  4096  8192 16384 32768 65536</code></pre>
+<pre class="r"><code># register cluster
 cores &lt;- 4
 cl &lt;- makeCluster(cores)
 registerDoParallel(cl)
@@ -111,7 +103,7 @@ system.time({
              unlist)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##      37      11      98</code></pre>
+##      52      33     223</code></pre>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 <pre class="r"><code>ggplot(trials, aes(n_car, groups)) +
   geom_point(alpha = .5) +

@@ -22,7 +22,7 @@ set.seed(11091987)
 
 car_groups <- function(n_car = 100, n_trial = 100){
   # simulate speeds
-  cars <- replicate(n_trial, sample(1:100, n_car, replace = TRUE))
+  cars <- replicate(n_trial, runif(n_car, 0, 5e5))
 
   # get cumulative minimum speeds
   cars_min <- apply(cars, 2, cummin)
@@ -38,6 +38,7 @@ car_groups <- function(n_car = 100, n_trial = 100){
 ```{r calc}
 # set constants
 n_cars <- 2^(1:16)
+n_cars
 
 # register cluster
 cores <- 4

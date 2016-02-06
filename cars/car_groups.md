@@ -9,38 +9,13 @@ February 5, 2016
 require(dplyr)
 library(foreach)
 library(doParallel)
-```
-
-```
-## Loading required package: iterators
-```
-
-```
-## Loading required package: parallel
-```
-
-```
-## 
-## Attaching package: 'parallel'
-```
-
-```
-## The following objects are masked from 'package:snow':
-## 
-##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
-##     clusterExport, clusterMap, clusterSplit, makeCluster,
-##     parApply, parCapply, parLapply, parRapply, parSapply,
-##     splitIndices, stopCluster
-```
-
-```r
 require(ggplot2)
 
 set.seed(11091987)
 
 car_groups <- function(n_car = 100, n_trial = 100){
   # simulate speeds
-  cars <- replicate(n_trial, sample(1:100, n_car, replace = TRUE))
+  cars <- replicate(n_trial, runif(n_car, 0, 5e5))
 
   # get cumulative minimum speeds
   cars_min <- apply(cars, 2, cummin)
@@ -57,7 +32,15 @@ car_groups <- function(n_car = 100, n_trial = 100){
 ```r
 # set constants
 n_cars <- 2^(1:16)
+n_cars
+```
 
+```
+##  [1]     2     4     8    16    32    64   128   256   512  1024  2048
+## [12]  4096  8192 16384 32768 65536
+```
+
+```r
 # register cluster
 cores <- 4
 cl <- makeCluster(cores)
@@ -72,7 +55,7 @@ system.time({
 
 ```
 ##    user  system elapsed 
-##      37      11      98
+##      52      33     223
 ```
 
 ```r
