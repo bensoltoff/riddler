@@ -1,21 +1,39 @@
----
-title: "Average Car Group Size"
-author: "Benjamin Soltoff"
-date: "February 5, 2016"
-output: 
-  html_document: 
-    keep_md: yes
----
+# Average Car Group Size
+Benjamin Soltoff  
+February 5, 2016  
 
-```{r settings, cache = FALSE, echo = FALSE}
-knitr::opts_chunk$set(cache = TRUE)
-options(digits = 2)
-```
 
-```{r setup}
+
+
+```r
 require(dplyr)
 library(foreach)
 library(doParallel)
+```
+
+```
+## Loading required package: iterators
+```
+
+```
+## Loading required package: parallel
+```
+
+```
+## 
+## Attaching package: 'parallel'
+```
+
+```
+## The following objects are masked from 'package:snow':
+## 
+##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+##     clusterExport, clusterMap, clusterSplit, makeCluster,
+##     parApply, parCapply, parLapply, parRapply, parSapply,
+##     splitIndices, stopCluster
+```
+
+```r
 require(ggplot2)
 
 set.seed(11091987)
@@ -35,7 +53,8 @@ car_groups <- function(n_car = 100, n_trial = 100){
 }
 ```
 
-```{r calc}
+
+```r
 # set constants
 n_cars <- 2^(1:16)
 
@@ -49,11 +68,19 @@ system.time({
            groups = mclapply(n_cars, car_groups, n_trial = 10000) %>%
              unlist)
 })
+```
 
+```
+##    user  system elapsed 
+##      37      11      98
+```
+
+```r
 stopCluster(cl)
 ```
 
-```{r plot}
+
+```r
 ggplot(trials, aes(n_car, groups)) +
   geom_point(alpha = .5) +
   geom_line() +
@@ -63,3 +90,5 @@ ggplot(trials, aes(n_car, groups)) +
        y = "Groups of Cars on the Road") +
   theme_bw()
 ```
+
+![](car_groups_files/figure-html/plot-1.png)
