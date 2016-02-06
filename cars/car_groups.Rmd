@@ -1,0 +1,57 @@
+---
+title: "Average Car Group Size"
+author: "Benjamin Soltoff"
+date: "February 5, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r settings, cache = FALSE, echo = FALSE}
+knitr::opts_chunk$set(cache = TRUE)
+options(digits = 2)
+```
+
+```{r setup}
+require(dplyr)
+require(snowfall)
+require(ggplot2)
+
+set.seed(11091987)
+
+car_groups <- function(n_car, n_trial = 100){
+  # simulate speeds
+  cars <- replicate(n_trial, sample(1:100, n_car, replace = TRUE))
+
+    # get cumulative minimum speeds
+  cars_min <- apply(cars, 2, cummin)
+  
+  # unique groups
+  groups <- apply(cars_min, 2, FUN = function(x) length(unique(x)))
+  
+  # number of groups
+  mean(groups)
+}
+```
+
+```{r calc}
+# set constants
+n_cars <- c(2:299, seq(300, 10000, by = 200))
+system.time({
+  sfInit(parallel = TRUE, cpus = 4)
+  trials <- data_frame(n_car = n_cars,
+           groups = sfLapply(n_cars, car_groups, n_trial = 10000) %>%
+             unlist)
+  sfStop()
+})
+```
+
+```{r plot}
+ggplot(trials, aes(n_car, groups)) +
+  geom_point(alpha = .5) +
+  xlim(0, 10000) +
+  geom_smooth(se = FALSE) +
+  labs(x = "Number of Cars on the Road",
+       y = "Groups of Cars on the Road") +
+  theme_bw()
+```
