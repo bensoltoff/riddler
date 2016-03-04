@@ -47,4 +47,5 @@ results %<>%
   mutate(win_prop = win / n_draw)
 
 ggplot(results, aes(cutpoint, win_prop)) +
-  geom_line()
+  geom_line() +
+  ylim(0,1)
