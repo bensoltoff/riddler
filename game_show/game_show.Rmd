@@ -1,0 +1,147 @@
+---
+title: "Can You Win This Hot New Game Show?"
+author: "Benjamin Soltoff"
+date: "March 6, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r settings, cache = FALSE, echo = FALSE}
+knitr::opts_chunk$set(cache = TRUE)
+options(digits = 2)
+```
+
+```{r setup, cache = FALSE}
+require(dplyr)
+require(magrittr)
+require(ggplot2)
+
+set.seed(938747)
+
+# number of rounds to play
+n_draw <- 100000
+```
+
+So the latest [Riddler puzzle on FiveThirtyEight](http://fivethirtyeight.com/features/can-you-win-this-hot-new-game-show/) goes like this:
+
+> Two players go on a hot new game show called “Higher Number Wins.” The two go into separate booths, and each presses a button, and a random number between zero and one appears on a screen. (At this point, neither knows the other’s number, but they do know the numbers are chosen from a standard uniform distribution.) They can choose to keep that first number, or to press the button again to discard the first number and get a second random number, which they must keep. Then, they come out of their booths and see the final number for each player on the wall. The lavish grand prize — a case full of gold bullion — is awarded to the player who kept the higher number. Which number is the optimal cutoff for players to discard their first number and choose another? Put another way, within which range should they choose to keep the first number, and within which range should they reject it and try their luck with a second number?
+
+First let's simulate some rounds of play. The following code will generate `r n_draw` rounds of play between two players. For the sake of efficiency, we will draw twice for each player now and consider how the selection of the first or second number influences the outcome of the game.
+
+```{r sim_play}
+p1 <- cbind(runif(n_draw), runif(n_draw))
+p2 <- cbind(runif(n_draw), runif(n_draw))
+
+head(p1)
+head(p2)
+```
+
+Let's consider a very simple strategy first: no matter what happens, always keep the first number. After all, the number is generated randomly so there is no guarantee that the second number will be larger than the first number. How well does player 1 do if both players employ this strategy?
+
+```{r first_num}
+sum(p1[,1] > p2[,1]) / n_draw
+```
+
+With this strategy, each player has a roughly `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`% chance of winning the game. We can also see this is the same if each player always keeps the second number.
+
+```{r second_num}
+sum(p1[,2] > p2[,2]) / n_draw
+```
+
+Okay, so this strategy is a bit naive. Why not be more sophisticated? Perhaps instead, players will only take the second number if their first number is low. An arbitrary cutpoint might be $.5$. That is, if either player gets a number less than $.5$ in the first draw, they will take whatever they get in the second draw. How does this strategy work? Here I write a short function to select the appropriate value from each round based on a specified cutpoint.
+
+```{r cut_5}
+cutoff <- function(draw, cutpoint = .5){
+  ifelse(draw[, 1] < cutpoint, draw[, 2], draw[, 1])
+}
+
+sum(cutoff(p1) > cutoff(p2)) / n_draw
+```
+
+Hmm, not particularly helpful here. Each player still has a roughly `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`% chance of winning the game.
+
+What about other cutpoints? Maybe $.5$ just is not an optimal cutpoint.
+
+```{r cut_vary}
+system.time({
+  cutpoints <- seq(0, 1, by = .01)
+  results <- lapply(cutpoints,
+                    function(cutpoint) sum(cutoff(p1, cutpoint = cutpoint) >
+                                             cutoff(p2, cutpoint = cutpoint))) %>%
+    unlist
+})
+
+results_full <- data_frame(cutpoint = cutpoints,
+                      win = results,
+                      win_prop = win / n_draw)
+```
+
+```{r cut_plot}
+results_plot <- ggplot(results_full, aes(cutpoint, win_prop)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Cutpoint",
+       y = "Player 1 Win Percentage") +
+  theme_bw()
+results_plot
+```
+
+Hmm, something seems to be going on here - we see a positive correlation with cutpoints greater than $.3$. Oh wait, what's that?
+
+```{r cut_plot_full}
+results_plot +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1))
+```
+
+Oh yeah. There really is not any significant change occurring here.
+
+```{r vary_cut_both}
+cutoff_2 <- function(p1, p2, cut1 = .5, cut2 = .5){
+  sum(cutoff(p1, cutpoint = cut1) > cutoff(p2, cutpoint = cut2))
+}
+
+# data frame of all combinations of cutpoints
+system.time({
+  cut_lite <- seq(0, 1, by = .025)
+  cut_combo <- expand.grid(cut_lite, cut_lite) %>%
+  tbl_df %>%
+  rename(cut1 = Var1, cut2 = Var2) %>%
+  mutate(p1_win = apply(., 1, FUN = function(x) cutoff_2(p1, p2, cut1 = x[1], cut2 = x[2])),
+         p1_prop = p1_win / n_draw)
+})
+```
+
+```{r vary_cut_plot}
+ggplot(cut_combo, aes(cut1, cut2, fill = p1_prop)) +
+  geom_raster() +
+  scale_fill_gradient2(midpoint = .5, labels = scales::percent) +
+  labs(x = "Player 1 Cutpoint",
+       y = "Player 2 Cutpoint",
+       fill = "Player 1 Win\nPercentage") +
+  theme_bw()
+```
+
+```{r vary_cut_optim}
+cut_combo %>%
+  arrange(abs(p1_prop - .5))
+```
+
+## Calculus Solution
+
+Total Probability of Hero Winning
+$$\Pr(H = 1) = - \frac{1}{2}(h^2 - 1)v + h \left( - \frac{h^2}{2} + (h - 1)v + \frac{1}{2} \right) + \frac{hv}{2} - \frac{v^2}{2} + (v - 1) v + \frac{1}{2}$$
+
+Partial Derivative with Respect to Hero
+$$\frac{\partial \Pr(H = 1)}{\partial h} = \frac{1}{2} (-3h^2 + 2hv -v + 1)$$
+
+Partial Derivative with Respect to Villain
+$$\frac{\partial \Pr(H = 1)}{\partial v} = \frac{1}{2} (h^2 - h + 2v - 1)$$
+
+Set Each Derivative Equal to Zero - Find Solution
+$$h = \frac{\sqrt{5}}{2} - \frac{1}{2}, v = \frac{\sqrt{5}}{2} - \frac{1}{2} $$
+
+
+
+
+

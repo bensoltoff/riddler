@@ -13,14 +13,14 @@ p1 <- cbind(runif(n_draw), runif(n_draw))
 p2 <- cbind(runif(n_draw), runif(n_draw))
 
 # strategy - always take first number
-sum(p1[,1] > p2[,1])
+sum(p1[,1] > p2[,1]) / n_draw
 
 # strategy - always take second number
-sum(p1[,2] > p2[,2])
+sum(p1[,2] > p2[,2]) / n_draw
 
 # strategy - if first number less than .5, take second number
 sum(apply(p1, 1, function(x) ifelse(x[1] < .5, x[2], x[1])) >
-      apply(p2, 1, function(x) ifelse(x[1] < .5, x[2], x[1])))
+      apply(p2, 1, function(x) ifelse(x[1] < .5, x[2], x[1]))) / n_draw
 
 # strategy - test above strategy with cutpoint at each value between 0 and 1
 # system.time({
@@ -49,3 +49,7 @@ results %<>%
 ggplot(results, aes(cutpoint, win_prop)) +
   geom_line() +
   ylim(0,1)
+
+
+
+
