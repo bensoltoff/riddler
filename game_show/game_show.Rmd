@@ -21,7 +21,7 @@ So the latest [Riddler puzzle on FiveThirtyEight](http://fivethirtyeight.com/fea
 
 > Two players go on a hot new game show called “Higher Number Wins.” The two go into separate booths, and each presses a button, and a random number between zero and one appears on a screen. (At this point, neither knows the other’s number, but they do know the numbers are chosen from a standard uniform distribution.) They can choose to keep that first number, or to press the button again to discard the first number and get a second random number, which they must keep. Then, they come out of their booths and see the final number for each player on the wall. The lavish grand prize — a case full of gold bullion — is awarded to the player who kept the higher number. Which number is the optimal cutoff for players to discard their first number and choose another? Put another way, within which range should they choose to keep the first number, and within which range should they reject it and try their luck with a second number?
 
-First let's simulate some rounds of play. The following code will generate `r prettyNum(n_draw, big.mark=",", scientific = FALSE)` rounds of play between two players. For the sake of efficiency, we will draw twice for each player now and consider how the selection of the first or second number influences the outcome of the game.
+My initial thought was to try and solve this problem via simulation. The following code will generate `r prettyNum(n_draw, big.mark=",", scientific = FALSE)` rounds of play between two players. For the sake of efficiency, we will draw twice for each player now and consider how the selection of the first or second number influences the outcome of the game.
 
 ```{r setup, cache = FALSE, message = FALSE, warning = FALSE}
 require(dplyr)
@@ -42,13 +42,15 @@ head(p1)
 head(p2)
 ```
 
-Let's consider a very simple strategy first: no matter what happens, always keep the first number. After all, the number is generated randomly so there is no guarantee that the second number will be larger than the first number. How well does player 1 do if both players employ this strategy?
+## Naive Players
+
+The key thing to realize is that if the players adopt the same strategy, each player will always have a 50% chance of victory. Let's consider a very simple strategy first: no matter what happens, always keep the first number. After all, the number is generated randomly so there is no guarantee that the second number will be larger than the first number. How well does player 1 do if both players employ this strategy?
 
 ```{r first_num}
 sum(p1[,1] > p2[,1]) / n_draw
 ```
 
-With this strategy, each player has a roughly `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`% chance of winning the game. We can also see this is the same if each player always keeps the second number.
+With this strategy, each player has a roughly `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`% chance of winning the game. We can also see this is the same if each player always takes the second number.
 
 ```{r second_num}
 sum(p1[,2] > p2[,2]) / n_draw
@@ -64,9 +66,9 @@ cutoff <- function(draw, cutpoint = .5){
 sum(cutoff(p1) > cutoff(p2)) / n_draw
 ```
 
-Hmm, not particularly helpful here. Each player still has a roughly `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`% chance of winning the game.
+Because each player chose a cutpoint of $.5$, their probability of winning is still `r round(sum(p1[,1] > p2[,1]) / n_draw * 100, digits = 0)`%.
 
-What about other cutpoints? Maybe $.5$ just is not an optimal cutpoint.
+This applies to all cutpoints, as long as both players select the same cutpoint.
 
 ```{r cut_vary}
 cutpoints <- seq(0, 1, by = .01)
@@ -82,25 +84,15 @@ results_full
 ```
 
 ```{r cut_plot}
-results_plot <- ggplot(results_full, aes(cutpoint, win_prop)) +
+ggplot(results_full, aes(cutpoint, win_prop)) +
   geom_line() +
-  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
   labs(x = "Cutpoint",
        y = "Player 1 Win Percentage") +
   theme_bw()
-results_plot
 ```
 
-Hmm, something seems to be going on here - we see a positive correlation with cutpoints greater than $.3$. Oh wait, what's that?
-
-```{r cut_plot_full}
-results_plot +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1))
-```
-
-Oh yeah. There really is not any significant change occurring here.
-
-## Bring on the Calculus
+## Strategic Players
 
 Okay, so the issue with this analysis thus far is that this assumes the same strategies by both players. What would happen if two players do not use the same cutpoint? After all, the players cannot communicate with one another so there is no reason to expect that they would choose the same cutpoint. Let's consider what happens if player 1 takes the second number if her first number is less than $.5$, but player 2 only takes the second number if his first number is less than $.9$.
 
@@ -116,11 +108,11 @@ Hmm, now we're on to something. Player 1 wins `r round(cutoff_2(p1, p2, cut1 = .
 
 ### Analytical Solution
 
-So full disclosure: I didn't do the math on this one. md46135 did the calculus and the full explanation can be found [here](http://forumserver.twoplustwo.com/showpost.php?p=49516577&postcount=10). The full probability equation is as follows (here, player 1 is named **hero** and player 2 is named **villain**):
+So full disclosure: I didn't do the math on this one. md46135 did the calculus and the full explanation can be found [here](http://forumserver.twoplustwo.com/25/probability/riddler-1594214/#post49516577). The full probability equation is as follows (here, player 1 is named **hero** and player 2 is named **villain**):
 
 [$$\Pr(H = 1) = - \frac{1}{2}(h^2 - 1)v + h \left( - \frac{h^2}{2} + (h - 1)v + \frac{1}{2} \right) + \frac{hv}{2} - \frac{v^2}{2} + (v - 1) v + \frac{1}{2}$$](https://www.wolframalpha.com/input/?i=(h*v)%2F2+%2B+v*(v+-+1)+-+v%5E2%2F2+%2B+h*(v*(h+-+1)+-+h%5E2%2F2+%2B+1%2F2)+-+(v*(h%5E2+-+1))%2F2+%2B+1%2F2)
 
-In order to calculate the equilibrium strategy for both players, calculate the partial derivatives with respect to $h$ and $v$
+This is the joint probability of victory for player 1 (or the hero) given four potential states: hero and villain both keep their first numbers, hero keeps her first and villian keeps his second, hero keeps her second and villain keeps his first, and both hero and villain keep their second numbers. In order to calculate the equilibrium strategy for both players, calculate the partial derivatives with respect to $h$ and $v$
 
 [$$\frac{\partial \Pr(H = 1)}{\partial h} = \frac{1}{2} (-3h^2 + 2hv -v + 1)$$](https://www.wolframalpha.com/input/?i=(h*v)%2F2+%2B+v*(v+-+1)+-+v%5E2%2F2+%2B+h*(v*(h+-+1)+-+h%5E2%2F2+%2B+1%2F2)+-+(v*(h%5E2+-+1))%2F2+%2B+1%2F2+partial+derivative+with+respect+to+h)
 
@@ -132,7 +124,7 @@ Then set each derivative equal to 0, and solve for the appropriate values of $h$
 
 ### Simulation Solution
 
-We can also use R to find this solution via [Monte Carlo simulation](https://en.wikipedia.org/wiki/Monte_Carlo_method). This I solved myself. Essentially we do a [grid search](https://en.wikipedia.org/wiki/Hyperparameter_optimization#Grid_search) over possible combinations of two player cutpoints and find the values which leave each player winning as close to 50% of the rounds as possible.
+We can also use R to find this solution via [Monte Carlo simulation](https://en.wikipedia.org/wiki/Monte_Carlo_method). This I solved for myself. Essentially we do a [grid search](https://en.wikipedia.org/wiki/Hyperparameter_optimization#Grid_search) over possible combinations of two player cutpoints and find the values which leave each player winning as close to 50% of the rounds as possible.
 
 ```{r vary_cut_both}
 cut_lite <- seq(0, 1, by = .025)
@@ -161,6 +153,7 @@ ggplot(cut_combo, aes(cut1, cut2, fill = p1_prop)) +
   theme_bw()
 ```
 
+As can be seen above, if either player adjusts his or her strategy, then one of them will be more successful in the long run. In order to maintain the balance, each player should discard their first number if it is less than $\frac{\sqrt{5}}{2} - \frac{1}{2}$, or approximately `r sqrt(5) / 2 - (1 / 2)`.
 
 
 
