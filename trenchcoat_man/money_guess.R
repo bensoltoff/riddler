@@ -44,36 +44,35 @@ guess_money <- function(actual, initial, n_tries = 9, min_val = 1, max_val = 100
 
 # run guess_money on every value between 1 and 1000
 # with starting values between 1 and 1000
-actual_vals <- 1:1000
-guess_vals <- 1:1000
+min_val <- 1
+max_val <- 1000
+actual_vals <- min_val:max_val
+guess_vals <- min_val:max_val
 
 system.time({
   data <- expand.grid(actual = actual_vals, guess = guess_vals) %>%
     tbl_df
   
-  result <- with(data, Vectorize(guess_money)(actual = actual, initial = guess))
+  result <- with(data, Vectorize(guess_money)(actual = actual, initial = guess,
+                                              min_val = min_val, max_val = max_val))
   
   both <- bind_cols(data, t(result) %>%
                       as.data.frame)
 })
 
-# what is the optimal starting guess?
+# which guess has the best win rate?
 both %>%
   group_by(guess) %>%
   summarize(win_rate = mean(win)) %>%
   ggplot(aes(guess, win_rate)) +
   geom_line() +
   scale_x_continuous(labels = scales::dollar) +
+  scale_y_continuous(labels = scales::percent) +
   labs(x = "Initial Guess",
        y = "Win Rate") +
   theme_bw()
 
-both %>%
-  group_by(guess) %>%
-  summarize(win_rate = mean(win)) %>%
-  arrange(-win_rate)
-
-## account for expected value, not pure win rate
+# which guess has the highest expected value?
 exp_val <- both %>%
   group_by(guess) %>%
   summarize(win_rate = mean(win),
