@@ -62,16 +62,39 @@ both %>%
   group_by(guess) %>%
   summarize(win_rate = mean(win)) %>%
   ggplot(aes(guess, win_rate)) +
-  geom_line()
+  geom_line() +
+  scale_x_continuous(labels = scales::dollar) +
+  labs(x = "Initial Guess",
+       y = "Win Rate") +
+  theme_bw()
 
 both %>%
   group_by(guess) %>%
   summarize(win_rate = mean(win)) %>%
   arrange(-win_rate)
 
-## account for how fast to victory
-both %>%
-  group_by(guess, round) %>%
+## account for expected value, not pure win rate
+exp_val <- both %>%
+  group_by(guess) %>%
   summarize(win_rate = mean(win),
-            n = n())
+            exp_val = mean(actual * win)) %>%
+  ungroup
+
+exp_val_max <- exp_val %>%
+  filter(exp_val == max(exp_val))
+
+ggplot(exp_val, aes(guess, exp_val)) +
+  geom_line() +
+  geom_point(data = exp_val_max) +
+  geom_text(data = exp_val_max, aes(label = paste0("$", guess)),
+            hjust = -.25) +
+  scale_x_continuous(labels = scales::dollar) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(x = "Initial Guess",
+       y = "Average Winnings") +
+  theme_bw()
+
+
+
+
 
