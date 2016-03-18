@@ -7,7 +7,7 @@ rm(list = ls())
 set.seed(11091987)
 
 # number of trials
-n_trial <- 10000
+n_trial <- 50000
 
 # function to determine if shot is inside rim
 shot_made <- function(shots, radius = 1, center_x = 0, center_y = 0){
