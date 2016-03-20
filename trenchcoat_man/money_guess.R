@@ -1,6 +1,7 @@
 require(dplyr)
 require(magrittr)
 require(ggplot2)
+require(ggrepel)
 
 rm(list = ls())
 
@@ -94,6 +95,54 @@ ggplot(exp_val, aes(guess, exp_val)) +
   theme_bw()
 
 
+# get expected values for 1:12 tries
+guess_money_mult <- function(n_tries = 1, min_val = 1, max_val = 1000){
+  actual_vals <- min_val:max_val
+  guess_vals <- min_val:max_val
+  
+  data <- expand.grid(actual = actual_vals, guess = guess_vals) %>%
+    tbl_df
+  
+  result <- with(data, Vectorize(guess_money)(actual = actual, initial = guess,
+                                              n_tries = n_tries,
+                                              min_val = min_val, max_val = max_val))
+  
+  both <- bind_cols(data, t(result) %>%
+                      as.data.frame) %>%
+    mutate(n_tries = n_tries)
+  
+  return(both)
+}
 
+system.time({
+  tries_all <- lapply(1:12, function(x) guess_money_mult(n_tries = x)) %>%
+    bind_rows
+})
 
+tries_all_exp <- tries_all %>%
+  mutate(n_tries = factor(n_tries)) %>%
+  group_by(guess, n_tries) %>%
+  summarize(win_rate = mean(win),
+            exp_val = mean(actual * win))
+
+tries_all_exp_max <- tries_all_exp %>%
+  group_by(n_tries) %>%
+  filter(exp_val == max(exp_val)) %>%
+  arrange(-exp_val) %>%
+  slice(1)
+
+ggplot(tries_all_exp, aes(guess, exp_val,
+                          group = n_tries, color = n_tries)) +
+  geom_line() +
+  geom_point(data = tries_all_exp_max) +
+  # geom_label_repel(data = tries_all_exp_max, aes(label = paste0("$", guess)),
+  #           show.legend = FALSE) +
+  scale_x_continuous(labels = scales::dollar) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_discrete(guide = guide_legend(reverse = TRUE)) +
+  labs(x = "Initial Guess",
+       y = "Expected Value",
+       color = "Number of\nGuesses",
+       group = "Number of\nGuesses") +
+  theme_bw(base_size = 16)
 
