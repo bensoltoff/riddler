@@ -1,0 +1,77 @@
+---
+title: "Riddler Challenge: Expected Draft Pick"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: bootstrap
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(flexdashboard)
+library(shiny)
+
+# function to calculate expected draft position
+draft_pick_sim <- function(n_groups = 2, n_teams = 30, n_sims = 100){
+  old <- 1:n_teams
+  n_groups <- n_groups - 1
+  
+  sims <- replicate(n_sims, rbinom(length(old), size = n_groups, prob = .5)) %>%
+    tbl_df %>%
+    bind_cols(data_frame(old)) %>%
+    gather(sim, outcome, -old) %>%
+    group_by(sim) %>%
+    arrange(sim, outcome, old) %>%
+    mutate(new = row_number())
+  
+  return(sims)
+}
+```
+
+Column {.sidebar data-width=400}
+-----------------------------------------------------------------------
+
+```{r}
+numericInput("n_teams",
+                    "Number of teams:",
+                    min = 1,
+                    max = 99,
+                    value = 30)
+
+numericInput("n_groups",
+                    "Number of groups to split into:",
+                    min = 2,
+                    max = 30,
+                    value = 2)
+```
+
+Column {data-height=200}
+-----------------------------------------------------------------------
+
+### Expected Draft Pick
+
+```{r}
+tn <- reactive(draft_pick_sim(n_groups = input$n_groups,
+                     n_teams = input$n_teams,
+                     n_sims = 10000))
+
+renderPlot({
+ggplot(tn(), aes(old, new)) +
+    geom_point(data = tn() %>%
+                 ungroup %>%
+                 sample_n(1000),
+               alpha = .5) +
+  geom_smooth() +
+    labs(x = "Original Draft Position",
+         y = "Expected Draft Position") +
+    theme_bw(base_size = 18)
+})
+```
+
+
+
+
+
+
