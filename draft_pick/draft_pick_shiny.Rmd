@@ -30,8 +30,8 @@ draft_pick_sim <- function(n_groups = 2, n_teams = 30, n_sims = 100){
 }
 ```
 
-Column {.sidebar data-width=400}
------------------------------------------------------------------------
+Inputs {.sidebar}
+-------------------------------------
 
 ```{r}
 numericInput("n_teams",
@@ -40,17 +40,27 @@ numericInput("n_teams",
                     max = 99,
                     value = 30)
 
-numericInput("n_groups",
-                    "Number of groups to split into:",
-                    min = 2,
-                    max = 30,
-                    value = 2)
+renderUI({
+  numericInput("n_groups",
+               "Number of groups to split into:",
+               min = 2,
+               max = input$n_teams,
+               value = 2)
+})
 ```
 
-Column {data-height=200}
------------------------------------------------------------------------
+```{r}
+renderTable({
+  tn() %>%
+  group_by(old) %>%
+  summarize(mean = mean(new)) %>%
+    rename(`Original Draft Position` = old,
+           `Expected Draft Position` = mean)
+})
+```
 
-### Expected Draft Pick
+Column
+-----------------------------------------------------------------------
 
 ```{r}
 tn <- reactive(draft_pick_sim(n_groups = input$n_groups,
@@ -64,11 +74,13 @@ ggplot(tn(), aes(old, new)) +
                  sample_n(1000),
                alpha = .5) +
   geom_smooth() +
-    labs(x = "Original Draft Position",
+    labs(title = "Expected Draft Pick",
+         x = "Original Draft Position",
          y = "Expected Draft Position") +
     theme_bw(base_size = 18)
 })
 ```
+
 
 
 
