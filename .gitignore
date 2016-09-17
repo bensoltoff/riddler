@@ -21,3 +21,5 @@ vignettes/*.pdf
 
 # cache files
 *_cache/
+
+.DS_Store

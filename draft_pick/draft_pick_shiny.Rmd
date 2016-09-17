@@ -18,7 +18,7 @@ draft_pick_sim <- function(n_groups = 2, n_teams = 30, n_sims = 100){
   old <- 1:n_teams
   n_groups <- n_groups - 1
   
-  sims <- replicate(n_sims, rbinom(length(old), size = n_groups, prob = .5)) %>%
+  sims <- replicate(n_sims, rbinom(n_teams, size = n_groups, prob = .5)) %>%
     tbl_df %>%
     bind_cols(data_frame(old)) %>%
     gather(sim, outcome, -old) %>%
@@ -35,10 +35,10 @@ Inputs {.sidebar}
 
 ```{r}
 numericInput("n_teams",
-                    "Number of teams:",
-                    min = 1,
-                    max = 99,
-                    value = 30)
+             "Number of teams:",
+             min = 1,
+             max = 99,
+             value = 30)
 
 renderUI({
   numericInput("n_groups",
@@ -52,8 +52,8 @@ renderUI({
 ```{r}
 renderTable({
   tn() %>%
-  group_by(old) %>%
-  summarize(mean = mean(new)) %>%
+    group_by(old) %>%
+    summarize(mean = mean(new)) %>%
     rename(`Original Draft Position` = old,
            `Expected Draft Position` = mean)
 })
@@ -64,26 +64,23 @@ Column
 
 ```{r}
 tn <- reactive(draft_pick_sim(n_groups = input$n_groups,
-                     n_teams = input$n_teams,
-                     n_sims = 10000))
+                              n_teams = input$n_teams,
+                              n_sims = 10000))
 
 renderPlot({
-ggplot(tn(), aes(old, new)) +
+  ggplot(tn(), aes(old, new)) +
     geom_point(data = tn() %>%
                  ungroup %>%
                  sample_n(1000),
                alpha = .5) +
-  geom_smooth() +
+    geom_smooth(data = tn() %>%
+                 group_by(old) %>%
+                 summarize(mean = mean(new)),
+               aes(old, mean),
+               se = FALSE) +
     labs(title = "Expected Draft Pick",
          x = "Original Draft Position",
          y = "Expected Draft Position") +
     theme_bw(base_size = 18)
 })
 ```
-
-
-
-
-
-
-
