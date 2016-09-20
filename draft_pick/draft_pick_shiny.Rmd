@@ -51,6 +51,16 @@ renderUI({
 })
 ```
 
+```{r}
+renderTable({
+  tn() %>%
+    group_by(old) %>%
+    summarize(mean = mean(new)) %>%
+    rename(`Original Draft Position` = old,
+           `Expected Draft Position` = mean)
+})
+```
+
 Column
 -----------------------------------------------------------------------
 
