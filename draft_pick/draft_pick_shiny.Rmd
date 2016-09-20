@@ -49,16 +49,6 @@ renderUI({
 })
 ```
 
-```{r}
-renderTable({
-  tn() %>%
-    group_by(old) %>%
-    summarize(mean = mean(new)) %>%
-    rename(`Original Draft Position` = old,
-           `Expected Draft Position` = mean)
-})
-```
-
 Column
 -----------------------------------------------------------------------
 
@@ -67,7 +57,7 @@ tn <- reactive(draft_pick_sim(n_groups = input$n_groups,
                               n_teams = input$n_teams,
                               n_sims = 10000))
 
-renderPlotly({
+output$plot <- renderPlotly({
   plot_build <- tn() %>%
     ungroup %>%
     count(old, new) %>%
@@ -91,4 +81,6 @@ renderPlotly({
   ggplotly(plot_build,
            tooltip = c("x", "y", "text"))
 })
+
+plotlyOutput("plot", width = "100%", height = "100%")
 ```
