@@ -34,18 +34,20 @@ Inputs {.sidebar}
 -------------------------------------
 
 ```{r}
-numericInput("n_teams",
-             "Number of teams:",
-             min = 1,
-             max = 99,
-             value = 30)
+sliderInput("n_teams",
+            "Number of teams:",
+            min = 1,
+            max = 99,
+            value = 30,
+            step = 1)
 
 renderUI({
-  numericInput("n_groups",
-               "Number of groups to split into:",
-               min = 2,
-               max = input$n_teams,
-               value = 2)
+  sliderInput("n_groups",
+              "Number of groups to split into:",
+              min = 2,
+              max = input$n_teams,
+              value = 2,
+              step = 1)
 })
 ```
 
