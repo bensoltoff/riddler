@@ -15,7 +15,7 @@ library(shiny)
 library(plotly)
 
 # function to calculate expected draft position
-draft_pick_sim <- function(n_groups = 2, n_teams = 30, n_sims = 100){
+draft_pick_sim <- function(n_teams = 30, n_groups = 2, n_sims = 100){
   old <- 1:n_teams
 
   sims <- replicate(n_sims, sample(1:n_groups, n_teams, replace = T)) %>%
@@ -51,6 +51,8 @@ renderUI({
 })
 ```
 
+### Simulation results
+
 ```{r}
 renderTable({
   tn() %>%
@@ -60,6 +62,8 @@ renderTable({
            `Expected Draft Position` = mean)
 })
 ```
+
+Source: [Riddler Challenge](http://fivethirtyeight.com/features/how-high-can-count-von-count-count/)
 
 Column
 -----------------------------------------------------------------------
