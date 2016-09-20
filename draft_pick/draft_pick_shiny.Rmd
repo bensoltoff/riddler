@@ -12,13 +12,13 @@ runtime: shiny
 library(tidyverse)
 library(flexdashboard)
 library(shiny)
+library(plotly)
 
 # function to calculate expected draft position
 draft_pick_sim <- function(n_groups = 2, n_teams = 30, n_sims = 100){
   old <- 1:n_teams
-  n_groups <- n_groups - 1
-  
-  sims <- replicate(n_sims, rbinom(n_teams, size = n_groups, prob = .5)) %>%
+
+  sims <- replicate(n_sims, sample(1:n_groups, n_teams, replace = T)) %>%
     tbl_df %>%
     bind_cols(data_frame(old)) %>%
     gather(sim, outcome, -old) %>%
@@ -67,20 +67,28 @@ tn <- reactive(draft_pick_sim(n_groups = input$n_groups,
                               n_teams = input$n_teams,
                               n_sims = 10000))
 
-renderPlot({
-  ggplot(tn(), aes(old, new)) +
-    geom_point(data = tn() %>%
-                 ungroup %>%
-                 sample_n(1000),
-               alpha = .5) +
-    geom_smooth(data = tn() %>%
-                 group_by(old) %>%
-                 summarize(mean = mean(new)),
-               aes(old, mean),
-               se = FALSE) +
+renderPlotly({
+  plot_build <- tn() %>%
+    ungroup %>%
+    count(old, new) %>%
+    ungroup %>%
+    complete(old, new, fill = list(n = 0)) %>%
+    group_by(old) %>%
+    mutate(pct = n / sum(n)) %>%
+    rename(Original = old,
+           Expected = new,
+           Percent = pct) %>%
+    ggplot(aes(Original, Expected, fill = Percent, text = paste0("Percent: ", Percent * 100, "%"))) +
+    geom_raster() +
+    scale_fill_continuous(low = "white", high = "blue",
+                          labels = scales::percent) +
     labs(title = "Expected Draft Pick",
          x = "Original Draft Position",
-         y = "Expected Draft Position") +
-    theme_bw(base_size = 18)
+         y = "Expected Draft Position",
+         fill = NULL) +
+    theme_bw(base_size = 18) +
+    theme(legend.position = "bottom")
+  ggplotly(plot_build,
+           tooltip = c("x", "y", "text"))
 })
 ```
